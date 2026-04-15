@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'http://127.0.0.1:8000',
+  baseURL: 'https://climasense-production.up.railway.app',
   timeout: 30000, // Increased to 30s for realtime-weather endpoint
   headers: { 'Content-Type': 'application/json' },
 });
@@ -235,7 +235,7 @@ export const adminAPI = {
     
     // Create a special axios instance for file upload without JSON content-type
     const uploadApi = axios.create({
-      baseURL: 'http://127.0.0.1:8000',
+      baseURL: 'https://climasense-production.up.railway.app',
       timeout: 30000, // Longer timeout for file uploads
     });
 
