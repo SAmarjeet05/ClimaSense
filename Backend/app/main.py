@@ -120,10 +120,34 @@ app = FastAPI(
 )
 
 # Add CORS middleware - configure for production/development
-allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:3000").split(",")
-# Always allow localhost for development
-if "localhost" not in str(allowed_origins):
-    allowed_origins = ["http://localhost:5173", "http://localhost:3000"] + allowed_origins
+# Production: allow frontend from Vercel/Railway
+allowed_origins = [
+    # Development
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "http://localhost:8080",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:8080",
+    # Production - Common Vercel domains
+    "https://clima-sense-teal.vercel.app",
+    "https://climasense-frontend.vercel.app",
+    "https://climasense-production.vercel.app",
+    "https://clima-sense.vercel.app",
+]
+
+# Add any additional origins from environment variable
+env_origins = os.getenv("ALLOWED_ORIGINS", "").split(",")
+allowed_origins.extend([origin.strip() for origin in env_origins if origin.strip()])
+
+# For production on Railway, if frontend URL is known, add it
+frontend_url = os.getenv("FRONTEND_URL", "")
+if frontend_url and frontend_url not in allowed_origins:
+    allowed_origins.append(frontend_url)
+    logger.info(f"✅ Added FRONTEND_URL to CORS: {frontend_url}")
+
+# Log CORS configuration
+logger.info(f"🔐 CORS Allowed Origins: {allowed_origins}")
 
 app.add_middleware(
     CORSMiddleware,
