@@ -65,7 +65,7 @@ export default function ForecastSimulator() {
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
-      const res = await fetch('http://127.0.0.1:8000/api/predict', {
+      const res = await fetch('https://climasense-production.up.railway.app/api/predict', {
         method: 'POST',
         headers,
         body: JSON.stringify({ city, year, month, day })
@@ -98,7 +98,7 @@ export default function ForecastSimulator() {
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
-      const res = await fetch('http://127.0.0.1:8000/api/simulate', {
+      const res = await fetch('https://climasense-production.up.railway.app/api/simulate', {
         method: 'POST',
         headers,
         body: JSON.stringify({

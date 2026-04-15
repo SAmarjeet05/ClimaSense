@@ -42,7 +42,7 @@ const AIInsights: React.FC = () => {
 
       // Fetch real-time insights from the new endpoint
       console.log('Fetching real-time insights from /api/realtime/generate-insights...');
-      const realtimeRes = await fetch('http://127.0.0.1:8000/api/realtime/generate-insights', {
+      const realtimeRes = await fetch('https://climasense-production.up.railway.app/api/realtime/generate-insights', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         mode: 'cors'

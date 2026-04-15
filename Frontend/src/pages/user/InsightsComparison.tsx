@@ -77,7 +77,7 @@ const InsightsComparison: React.FC = () => {
   const fetchAllCities = async () => {
     try {
       setCitiesLoading(true);
-      const res = await fetch('http://127.0.0.1:8000/api/comparison/cities', {
+      const res = await fetch('https://climasense-production.up.railway.app/api/comparison/cities', {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
         mode: 'cors'
@@ -109,7 +109,7 @@ const InsightsComparison: React.FC = () => {
     try {
       setComparisonLoading(true);
       // Pass mode parameter to API
-      const res = await fetch(`http://127.0.0.1:8000/api/compare-cities?city1=${city1}&city2=${city2}&mode=${mode}`, {
+      const res = await fetch(`https://climasense-production.up.railway.app/api/compare-cities?city1=${city1}&city2=${city2}&mode=${mode}`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
         mode: 'cors'
@@ -152,7 +152,7 @@ const InsightsComparison: React.FC = () => {
   const fetchAnomalies = async (targetCity: string) => {
     try {
       setAnomaliesLoading(true);
-      const res = await fetch(`http://127.0.0.1:8000/api/detect-anomalies-city?city=${targetCity}&limit=10`, {
+      const res = await fetch(`https://climasense-production.up.railway.app/api/detect-anomalies-city?city=${targetCity}&limit=10`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
         mode: 'cors'
@@ -176,7 +176,7 @@ const InsightsComparison: React.FC = () => {
   const fetchAIInsights = async () => {
     try {
       setAiLoading(true);
-      const res = await fetch('http://127.0.0.1:8000/api/realtime/generate-insights', {
+      const res = await fetch('https://climasense-production.up.railway.app/api/realtime/generate-insights', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         mode: 'cors'

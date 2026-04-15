@@ -39,7 +39,7 @@ export const ClimateHeatmap: React.FC<ClimateHeatmapProps> = ({ riskData: initia
     try {
       setLoading(true);
       // Use direct backend URL to bypass proxy issues
-      const url = `http://127.0.0.1:8000/api/dashboard/heatmap-data?year=${selectedYear}`;
+      const url = `https://climasense-production.up.railway.app/api/dashboard/heatmap-data?year=${selectedYear}`;
       console.log(`Fetching heatmap data for year ${selectedYear}`);
       
       const controller = new AbortController();

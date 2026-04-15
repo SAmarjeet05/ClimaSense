@@ -75,7 +75,7 @@ const Dashboard: React.FC = () => {
       // Fetch risk data
       let riskData = null;
       try {
-        const riskRes = await fetch('http://127.0.0.1:8000/api/dashboard/risk', { headers });
+        const riskRes = await fetch('https://climasense-production.up.railway.app/api/dashboard/risk', { headers });
         console.log('Risk response status:', riskRes.status);
         if (riskRes.ok) {
           riskData = await riskRes.json();
@@ -92,7 +92,7 @@ const Dashboard: React.FC = () => {
       let insightsData = null;
       try {
         console.log('Fetching real-time insights from /api/realtime/generate-insights...');
-        const insightsRes = await fetch('http://127.0.0.1:8000/api/realtime/generate-insights', {
+        const insightsRes = await fetch('https://climasense-production.up.railway.app/api/realtime/generate-insights', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           mode: 'cors'

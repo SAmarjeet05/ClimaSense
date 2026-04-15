@@ -151,7 +151,7 @@ export const Assistant: React.FC = () => {
 
   const loadSuggestedQueries = async () => {
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/assistant/suggested-queries');
+      const response = await fetch('https://climasense-production.up.railway.app/api/assistant/suggested-queries');
       const data = await response.json();
       if (data.status === 'success') {
         setSuggestedQueries(data.suggested_queries);
@@ -193,7 +193,7 @@ export const Assistant: React.FC = () => {
       );
 
       // Call assistant API
-      const response = await fetch('http://127.0.0.1:8000/api/assistant/query', {
+      const response = await fetch('https://climasense-production.up.railway.app/api/assistant/query', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

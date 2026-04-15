@@ -272,7 +272,7 @@ const ClimateMap: React.FC = () => {
         // ⚡ OPTIMIZED: Use single-city history endpoint instead of fetching all cities for each year
         // This is much faster - only fetches data for the selected city
         const response = await fetch(
-          `http://127.0.0.1:8000/api/climate-map/city-history/${selectedCity.city}?month=${month}&day=${day}&mode=${mode}&years_back=10&years_ahead=5`
+          `https://climasense-production.up.railway.app/api/climate-map/city-history/${selectedCity.city}?month=${month}&day=${day}&mode=${mode}&years_back=10&years_ahead=5`
         );
         
         if (!response.ok) {
@@ -311,7 +311,7 @@ const ClimateMap: React.FC = () => {
       try {
         // ⚡ OPTIMIZED: Use single-city history endpoint for hovered city too
         const response = await fetch(
-          `http://127.0.0.1:8000/api/climate-map/city-history/${hoveredCity}?month=${month}&day=${day}&mode=${mode}&years_back=10&years_ahead=5`
+          `https://climasense-production.up.railway.app/api/climate-map/city-history/${hoveredCity}?month=${month}&day=${day}&mode=${mode}&years_back=10&years_ahead=5`
         );
         
         if (!response.ok) {
@@ -376,7 +376,7 @@ const ClimateMap: React.FC = () => {
 
   // Fetch year range on mount
   useEffect(() => {
-    fetch('http://127.0.0.1:8000/api/climate-map/year-range')
+    fetch('https://climasense-production.up.railway.app/api/climate-map/year-range')
       .then(res => res.json())
       .then(data => {
         setYearRange({ min: data.min_year, max: data.max_year });
@@ -396,7 +396,7 @@ const ClimateMap: React.FC = () => {
       setSelectedCity(null);
 
       const response = await fetch(
-        `http://127.0.0.1:8000/api/climate-map/data?year=${year}&month=${month}&day=${day}&mode=${mode}`
+        `https://climasense-production.up.railway.app/api/climate-map/data?year=${year}&month=${month}&day=${day}&mode=${mode}`
       );
 
       if (!response.ok) {
