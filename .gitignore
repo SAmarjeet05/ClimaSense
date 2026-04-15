@@ -1,0 +1,150 @@
+# ============================================================
+# ENVIRONMENT CONFIGURATION - STRICT EXCLUSION
+# ============================================================
+# Exclude ALL environment & config files (no exceptions)
+.env
+.env.local
+.env.*.local
+.env.example
+.env.*.example
+*.env
+env.txt
+secrets.txt
+
+# ============================================================
+# PYTHON PACKAGES & VIRTUAL ENVIRONMENTS - STRICT EXCLUSION
+# ============================================================
+# Virtual Environments (never commit)
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+.venv/
+virtualenv/
+pipenv.lock
+poetry.lock
+
+# Python compiled files & cache (never commit)
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+*.egg
+build/
+dist/
+.eggs/
+pip-log.txt
+pip-delete-this-directory.txt
+.installed.cfg
+MANIFEST
+
+# ============================================================
+# NODE & FRONTEND - STRICT EXCLUSION
+# ============================================================
+# Dependencies (never commit)
+node_modules/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Build outputs
+Frontend/dist/
+Frontend/build/
+.next/
+coverage/
+
+# Frontend logs & debug
+npm-debug.log*
+yarn-error.log*
+
+# ============================================================
+# IDE & EDITOR FILES - STRICT EXCLUSION
+# ============================================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.sublime-project
+*.sublime-workspace
+.DS_Store
+Thumbs.db
+
+# ============================================================
+# DATA & DATASETS - SELECTIVE INCLUSION ONLY
+# ============================================================
+# RULE: Keep ONLY essential datasets needed for API functionality
+# Everything else must be excluded
+
+# Ignore all data by default (including NetCDF, large binary formats)
+Backend/data/
+Backend/test_data/
+Backend/test_output/
+*.nc
+*.h5
+*.GRD
+*.hdf5
+*.netcdf
+
+# EXCEPTIONS: Must explicitly include essential files
+!Backend/data/
+!Backend/data/nasa_data/
+!Backend/data/nasa_data/nasa_india_40cities.csv
+!Backend/data/preprocessed/
+!Backend/data/preprocessed/rainfall_final.csv
+!Backend/data/preprocessed/temperature_final.csv
+!Backend/data/processed.csv
+
+# ============================================================
+# ML MODELS - SELECTIVE INCLUSION ONLY
+# ============================================================
+# RULE: Keep trained models needed for predictions only
+
+# Ignore all models by default
+Backend/models/
+*.pkl
+*.joblib
+
+# EXCEPTIONS: Must explicitly include essential model files
+!Backend/models/
+!Backend/models/temp_model.pkl
+!Backend/models/rain_model.pkl
+!Backend/models/city_temp_encoding.pkl
+!Backend/models/city_rain_encoding.pkl
+!Backend/models/feature_list.pkl
+!Backend/models/feature_scaler.pkl
+
+# ============================================================
+# TESTING & LOGGING
+# ============================================================
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.hypothesis/
+*.log
+*.pot
+
+# ============================================================
+# OS & MISCELLANEOUS
+# ============================================================
+.turbo/
+.cache/
+*.bak
+*.tmp
+*.xlsx
+*.xls
+
+# Build Artifacts
+Frontend/dist/
+Frontend/.nuxt/
+Frontend/out/
+
+# Miscellaneous
+*.bak
+*.tmp
+.turbo/
+.cache/

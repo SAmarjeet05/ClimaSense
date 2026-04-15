@@ -1,0 +1,86 @@
+/* Heatmap Tooltip Styles */
+.heatmap-tooltip {
+  background-color: rgba(20, 20, 30, 0.95) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 8px !important;
+  padding: 8px 12px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5) !important;
+  backdrop-filter: blur(8px) !important;
+  font-size: 12px !important;
+  max-width: 250px !important;
+  word-wrap: break-word !important;
+}
+
+.heatmap-tooltip b {
+  color: #ffffff !important;
+  font-weight: 600;
+}
+
+.heatmap-tooltip br {
+  margin: 2px 0;
+}
+
+/* Smooth transitions for heatmap layer */
+.leaflet-heatmap-layer {
+  transition: opacity 0.3s ease-in-out;
+}
+
+/* Heatmap control styling */
+.leaflet-heatmap-control {
+  background: rgba(20, 20, 30, 0.95) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 8px !important;
+  padding: 12px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5) !important;
+  backdrop-filter: blur(8px) !important;
+}
+
+.leaflet-heatmap-control h4 {
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+}
+
+.leaflet-heatmap-control .legend-entry {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0;
+  color: #a0a0a0;
+  font-size: 12px;
+}
+
+.leaflet-heatmap-control .legend-color {
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+}
+
+/* Smooth fade in animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.heatmap-fade-in {
+  animation: fadeIn 0.6s ease-in-out;
+}
+
+/* Pulse animation for risk indicator */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.heatmap-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
