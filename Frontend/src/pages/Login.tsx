@@ -44,7 +44,7 @@ const Login: React.FC = () => {
     if (success) {
       navigate('/');
     } else {
-      setError('Invalid credentials. Try the demo accounts below.');
+      setError('Invalid email or password. Please try again.');
     }
     setIsLoading(false);
   };
@@ -260,12 +260,6 @@ const Login: React.FC = () => {
                   {isRegister ? 'Sign In' : 'Register'}
                 </button>
               </p>
-              {!isRegister && (
-                <div className="mt-3 space-y-1 text-xs">
-                  <span>Demo credentials:</span>
-                  <p><span className="text-primary">Admin:</span> admin@test.com / Admin123456</p>
-                </div>
-              )}
             </div>
           </div>
         </motion.div>
