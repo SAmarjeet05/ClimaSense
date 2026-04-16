@@ -47,9 +47,17 @@ class AssistantService:
     }
     
     def __init__(self):
-        self.backend_url = "http://127.0.0.1:8000"
+        # Use environment variable for backend URL, default to production
+        import os
+        self.backend_url = os.getenv("BACKEND_URL", "https://climasense-production.up.railway.app")
+        # Fallback to localhost only in development
+        if os.getenv("ENVIRONMENT") == "development":
+            self.backend_url = "http://127.0.0.1:8000"
+        
         self.ollama_url = "http://localhost:11434"
         self.client = httpx.AsyncClient(timeout=30.0)
+        
+        logger.info(f"🔧 AssistantService initialized with backend_url: {self.backend_url}")
     
     async def query_assistant(self, query: str, user_id: Optional[int] = None) -> Dict[str, Any]:
         """
@@ -124,7 +132,10 @@ class AssistantService:
             cities = parsed["cities"]
             parameters = parsed["parameters"]
             
-            logger.info(f"Processing query - Intent: {intent}, Cities: {cities}")
+            logger.info(f"🔍 Processing single query")
+            logger.info(f"   ├─ Intent: {intent}")
+            logger.info(f"   ├─ Cities: {cities}")
+            logger.info(f"   └─ Parameters: {parameters}")
             
             # Handle MAP_ACTION separately - return navigation instruction instead of data
             if intent == "map_action":
@@ -193,10 +204,17 @@ class AssistantService:
                 }
             
             # Get data based on intent
+            logger.info(f"📥 Fetching data for intent: {intent}")
             data = await self._fetch_data_for_intent(intent, cities, parameters)
+            logger.info(f"📤 Data fetched: type={data.get('type')}, has_raw_data={bool(data.get('data'))}")
+            
+            if data.get("error"):
+                logger.error(f"❌ Error fetching data: {data.get('error')}")
             
             # Generate LLM response
+            logger.info(f"🧠 Generating LLM response for intent: {intent}")
             answer = await self._generate_llm_response(intent, query, data, cities)
+            logger.info(f"✅ LLM response generated ({len(answer)} chars)")
             
             # Suggest next action
             suggested_action, action_url = self._suggest_next_action(intent)
@@ -381,10 +399,13 @@ class AssistantService:
     async def _get_forecast_data(self, cities: List[str], parameters: Dict) -> Dict:
         """Fetch/generate forecast data with actual predictions"""
         try:
-            # Extract month from parameters (default to current month)
+            # Extract parameters safely
             from datetime import datetime
             month = parameters.get("month", datetime.now().month)
             years_ahead = parameters.get("years_ahead", 5)
+            year = parameters.get("year", 2026)
+            
+            logger.info(f"📊 Fetching forecast for cities: {cities}, years_ahead: {years_ahead}")
             
             # Sample forecast data generator
             forecast_data = {}
@@ -393,27 +414,39 @@ class AssistantService:
                 # Try to call forecast API with correct parameters
                 try:
                     url = f"{self.backend_url}/api/forecast?region={city}&month={month}&years_ahead={years_ahead}"
+                    logger.info(f"🌐 Calling: {url}")
                     response = await self.client.get(url, timeout=5)
                     
                     if response.status_code == 200:
-                        forecast_data[city] = response.json()
+                        api_data = response.json()
+                        logger.info(f"✅ Got forecast API response for {city}")
+                        forecast_data[city] = api_data
                     else:
+                        logger.warning(f"⚠️ Forecast API returned {response.status_code} for {city}, using fallback")
                         # Generate forecast from sample data
-                        forecast_data[city] = self._generate_forecast(city, year, metric)
-                except:
+                        forecast_data[city] = self._generate_forecast(city, year, "temperature")
+                except Exception as api_error:
+                    logger.warning(f"⚠️ API call failed for {city}: {str(api_error)}, using fallback")
                     # Fallback: generate forecast
-                    forecast_data[city] = self._generate_forecast(city, year, metric)
+                    forecast_data[city] = self._generate_forecast(city, year, "temperature")
+            
+            if not forecast_data:
+                logger.error(f"❌ No forecast data generated for cities: {cities}")
+                raise Exception(f"Failed to generate forecast data for any city")
+            
+            logger.info(f"✅ Forecast data prepared for {len(forecast_data)} cities")
             
             return {
                 "type": "forecast",
                 "cities": cities,
                 "month": month,
                 "years_ahead": years_ahead,
+                "year": year,
                 "data": forecast_data
             }
         except Exception as e:
-            logger.error(f"Error fetching forecast data: {str(e)}")
-            return {"type": "forecast", "error": str(e)}
+            logger.error(f"❌ Error fetching forecast data: {str(e)}")
+            return {"type": "forecast", "error": str(e), "data": {}}
     
     def _generate_forecast(self, city: str, year: int, metric: str = "temperature") -> Dict:
         """Generate realistic forecast predictions for a city"""
@@ -701,6 +734,19 @@ class AssistantService:
         try:
             from app.services.groq_service import GroqService
             
+            # CRITICAL: Validate data before LLM
+            logger.info(f"🧠 Generating LLM response for intent: {intent}")
+            logger.info(f"📊 Data received: type={data.get('type')}, has_data={bool(data.get('data'))}")
+            
+            # Check if we have actual data
+            raw_data = data.get("data", {})
+            if not raw_data or (isinstance(raw_data, dict) and len(raw_data) == 0):
+                logger.error(f"❌ EMPTY DATA ERROR: No data available for intent {intent}")
+                # Don't send empty data to LLM - return error response instead
+                error_msg = f"Unable to generate {intent} - no data available. Please try again or refine your query."
+                logger.warning(f"🚫 Returning fallback for empty data: {error_msg}")
+                return self._get_fallback_response(intent, data)
+            
             # Prepare context for LLM
             context = self._prepare_context(intent, data, cities)
             cities_info = f"for {', '.join(cities)}" if cities else "in India"
@@ -805,13 +851,15 @@ Answer:"""
             # Use Groq service with smart fallback
             # Use larger model for complex queries
             use_large_model = len(prompt) > 1000 or "compare" in intent or "trend" in intent
+            
+            logger.info(f"🚀 Calling LLM with model={'large' if use_large_model else 'default'}")
             answer = GroqService.generate_response(prompt, use_large_model=use_large_model, max_tokens=500)
             
             if answer and len(answer) > 20:
                 logger.info(f"✅ LLM response generated for intent: {intent} ({len(answer)} chars)")
                 return answer
             else:
-                logger.warning(f"❌ LLM response too short or empty, using fallback")
+                logger.warning(f"❌ LLM response too short or empty ({len(answer) if answer else 0} chars), using fallback")
                 return self._get_fallback_response(intent, data)
                 
         except Exception as e:
