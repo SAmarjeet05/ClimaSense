@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import os
 import logging
 from contextlib import asynccontextmanager
+from datetime import datetime
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
@@ -30,9 +31,14 @@ from app.models.system_log import SystemLog
 from app.models.realtime_weather import RealtimeWeatherData
 
 # Create database tables on startup
-print("Initializing database...")
-create_tables()
-print("✅ All models registered and tables created (including realtime_weather_data)")
+try:
+    print("Initializing database...")
+    create_tables()
+    print("✅ All models registered and tables created (including realtime_weather_data)")
+except Exception as db_error:
+    print(f"❌ DATABASE INITIALIZATION ERROR: {str(db_error)}")
+    logger.error(f"Database initialization failed: {str(db_error)}", exc_info=True)
+    # Continue anyway - app can still handle requests
 
 
 # ============================================================
@@ -49,13 +55,16 @@ async def lifespan(app: FastAPI):
     print("\n" + "="*60)
     print("🌍 CLIMATE INTELLIGENCE PLATFORM STARTING UP")
     print("="*60)
+    print(f"⏰ Timestamp: {datetime.now().isoformat()}")
     
     try:
         # Get database session for initial update
+        print("\n📝 Step 1: Getting database session...")
         db = next(get_db())
+        print("✅ Database session obtained")
         
         # Run initial weather update to populate real-time data
-        print("\n📡 Fetching initial real-time weather data from Open-Meteo...")
+        print("\n📡 Step 2: Fetching initial real-time weather data from Open-Meteo...")
         try:
             results = RealtimeWeatherService.update_all_cities_from_api(db)
             logger.info(f"✅ Initial weather update: {results['success']} cities updated")
@@ -66,10 +75,12 @@ async def lifespan(app: FastAPI):
             logger.error(f"Initial weather update error: {str(e)}")
             print(f"   ⚠️ Initial update encountered issues: {str(e)}")
         finally:
+            print("\n🔌 Closing database session...")
             db.close()
+            print("✅ Database session closed")
         
         # Start the weather update scheduler
-        print("\n⏱️  Starting automatic weather update scheduler...")
+        print("\n⏱️  Step 3: Starting automatic weather update scheduler...")
         try:
             # Get a new session for scheduler
             from app.core.database import SessionLocal
@@ -80,14 +91,14 @@ async def lifespan(app: FastAPI):
             print(f"   ⚠️ Scheduler error (manual updates still available): {str(e)}")
         
         print("\n" + "="*60)
-        print("✅ APPLICATION READY")
+        print("✅ APPLICATION READY - ALL ROUTES AVAILABLE")
         print("="*60)
-        print("Endpoints available:")
-        print("  📚 API Docs: http://localhost:8001/docs")
-        print("  🗺️  Real-time weather: GET /api/realtime/latest-data")
-        print("  📊 Weather stats: GET /api/realtime/stats")
-        print("  🔄 Manual update: POST /api/realtime/update-weather")
-        print("  ⏱️  Scheduler status: GET /api/realtime/scheduler-status")
+        print("Access the API:")
+        print("  🌐 Root: https://climasense-production.up.railway.app/")
+        print("  📚 Docs: https://climasense-production.up.railway.app/docs")
+        print("  🏥 Health: https://climasense-production.up.railway.app/health")
+        print("="*60 + "\n")
+        print("🚀 STARTUP COMPLETE - APP IS FULLY OPERATIONAL")
         print("="*60 + "\n")
         
     except Exception as e:
@@ -110,6 +121,10 @@ async def lifespan(app: FastAPI):
 
 
 # Initialize FastAPI app with lifespan
+print("\n" + "="*60)
+print("🔧 CREATING FASTAPI APPLICATION INSTANCE...")
+print("="*60)
+
 app = FastAPI(
     title="Climate Change Data Analysis API",
     description="Phase 5 - AI-Powered Climate Intelligence Platform with Real-Time Weather Data",
@@ -118,6 +133,9 @@ app = FastAPI(
     redoc_url="/redoc",
     lifespan=lifespan
 )
+
+print("✅ FastAPI app instance created successfully")
+print("="*60 + "\n")
 
 # Add CORS middleware - configure for production/development
 # Production: allow frontend from Vercel/Railway
@@ -158,12 +176,25 @@ app.add_middleware(
 )
 
 # Include routers
-app.include_router(auth.router)
-app.include_router(climate.router)
-app.include_router(climate_map.router)
-app.include_router(admin.router)
-app.include_router(intelligence.router)
-app.include_router(assistant.router)
+print("\n📌 Registering API routers...")
+try:
+    print("  ✓ Including auth router (prefix: /auth)")
+    app.include_router(auth.router)
+    print("  ✓ Including climate router (prefix: /api)")
+    app.include_router(climate.router)
+    print("  ✓ Including climate_map router (prefix: /api)")
+    app.include_router(climate_map.router)
+    print("  ✓ Including admin router (prefix: /api/admin)")
+    app.include_router(admin.router)
+    print("  ✓ Including intelligence router (prefix: /api)")
+    app.include_router(intelligence.router)
+    print("  ✓ Including assistant router (prefix: /api/assistant)")
+    app.include_router(assistant.router)
+    print("✅ All routers registered successfully\n")
+except Exception as router_error:
+    print(f"❌ ERROR REGISTERING ROUTERS: {str(router_error)}")
+    logger.error(f"Router registration failed: {str(router_error)}", exc_info=True)
+    raise
 
 # Root endpoint
 @app.get("/", tags=["Root"])
@@ -218,6 +249,18 @@ def health():
 
 if __name__ == "__main__":
     import uvicorn
-    print("🚀 Starting FastAPI server...")
-    print("📚 API Documentation: http://127.0.0.1:8001/docs")
-    uvicorn.run(app, host="0.0.0.0", port=8001)
+    print("\n" + "="*60)
+    print("🚀 STARTING FASTAPI SERVER WITH UVICORN")
+    print("="*60)
+    print(f"⏰ Start time: {datetime.now().isoformat()}")
+    print(f"🌐 Host: 0.0.0.0, Port: 8001")
+    print(f"📚 API Documentation: http://127.0.0.1:8001/docs")
+    print(f"🏥 Health check: http://127.0.0.1:8001/health")
+    print("="*60 + "\n")
+    
+    try:
+        uvicorn.run(app, host="0.0.0.0", port=8001, log_level="info")
+    except Exception as e:
+        print(f"\n❌ FATAL ERROR: Failed to start uvicorn: {str(e)}")
+        logger.error(f"Uvicorn startup failed: {str(e)}", exc_info=True)
+        raise
