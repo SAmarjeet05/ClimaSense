@@ -10,11 +10,15 @@ const api = axios.create({
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('climaai_token');
   
+  // Public endpoints that don't require authentication
+  const publicEndpoints = ['/auth/login', '/auth/register'];
+  const isPublicEndpoint = publicEndpoints.some(endpoint => config.url?.includes(endpoint));
+  
   // Debug: Log token status
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
     console.log(`✓ Auth token attached to ${config.url}`);
-  } else {
+  } else if (!isPublicEndpoint) {
     console.warn(`⚠ No auth token found for ${config.url}`);
   }
   

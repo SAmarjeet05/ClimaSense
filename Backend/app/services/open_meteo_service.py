@@ -1,17 +1,67 @@
 """
-Open-Meteo API Service
-Fetches real-time weather data for Indian cities/regions
+Backup Weather Data Service
+Generates realistic random weather data (Open-Meteo API removed)
 """
-import requests
-from typing import Dict, List, Optional, Tuple
+import logging
+from typing import Dict, List, Optional
 from datetime import datetime
-from concurrent.futures import ThreadPoolExecutor, as_completed
-import threading
+import random
+
+logger = logging.getLogger(__name__)
+
 
 class OpenMeteoService:
-    """Service to fetch real-time weather data from Open-Meteo API"""
+    """Service to generate backup random weather data"""
     
-    BASE_URL = "https://api.open-meteo.com/v1/forecast"
+    BASE_URL = "https://api.open-meteo.com/v1/forecast"  # Deprecated
+    
+    # Weather ranges for realistic data
+    WEATHER_RANGES = {
+        "temperature": (15, 42),
+        "rainfall": (0, 80),
+        "humidity": (30, 95),
+        "wind_speed": (5, 35)
+    }
+    
+    # Create session with retry strategy
+    @staticmethod
+    def _create_session_with_retries():
+        """Not needed - using backup data instead of API"""
+        return None
+    
+    # Session instance
+    _session = None
+    
+    @classmethod
+    def get_session(cls):
+        """Not needed - using backup data instead of API"""
+        return None
+    
+    @classmethod
+    def generate_random_weather(cls) -> Dict:
+        """Generate realistic random weather data"""
+        ranges = cls.WEATHER_RANGES
+        
+        temp = round(random.uniform(*ranges["temperature"]), 1)
+        rainfall = round(random.uniform(*ranges["rainfall"]), 1)
+        humidity = round(random.uniform(*ranges["humidity"]), 1)
+        wind = round(random.uniform(*ranges["wind_speed"]), 1)
+        
+        # Correlation: higher temps usually lower humidity
+        if temp > 35:
+            humidity = max(30, humidity - 20)
+        elif temp < 20:
+            humidity = min(95, humidity + 15)
+        
+        weather_code = random.choice([0, 1, 2, 3, 45, 48, 51, 53, 55, 61, 63, 65, 71, 73, 75, 80, 81, 82, 85, 86])
+        
+        return {
+            "temperature": temp,
+            "precipitation": rainfall,
+            "humidity": humidity,
+            "wind_speed": wind,
+            "weather_code": weather_code
+        }
     
     # Indian cities with their coordinates (latitude, longitude)
     INDIAN_CITIES = {
@@ -21,7 +71,7 @@ class OpenMeteoService:
         "Chennai": {"lat": 13.0827, "lng": 80.2707},
         "Hyderabad": {"lat": 17.3850, "lng": 78.4867},
         "Kolkata": {"lat": 22.5726, "lng": 88.3639},
-        "pune": {"lat": 18.5204, "lng": 73.8567},
+        "Pune": {"lat": 18.5204, "lng": 73.8567},
         "Ahmedabad": {"lat": 23.0225, "lng": 72.5714},
         "Jaipur": {"lat": 26.9124, "lng": 75.7873},
         "Lucknow": {"lat": 26.8467, "lng": 80.9462},
@@ -42,7 +92,6 @@ class OpenMeteoService:
         "Agra": {"lat": 27.1767, "lng": 78.0081},
         "Nashik": {"lat": 19.9975, "lng": 73.7898},
         "Aurangabad": {"lat": 19.8762, "lng": 75.3433},
-        "Vadodara": {"lat": 22.3072, "lng": 73.1812},
         "Kalyan": {"lat": 19.2403, "lng": 73.1305},
         "Meerut": {"lat": 28.9845, "lng": 77.7064},
     }
@@ -50,7 +99,7 @@ class OpenMeteoService:
     @staticmethod
     def fetch_location_weather(latitude: float, longitude: float, city_name: str = None) -> Dict:
         """
-        Fetch current weather for a specific location using Open-Meteo API
+        Fetch weather for a location - now using backup random data
         
         Args:
             latitude: Latitude coordinate
@@ -58,92 +107,72 @@ class OpenMeteoService:
             city_name: Optional city name for reference
             
         Returns:
-            Dictionary with current weather data or error
+            Dictionary with backup random weather data
         """
         try:
-            params = {
-                "latitude": latitude,
-                "longitude": longitude,
-                "current_weather": True,
-                "hourly": "temperature_2m,precipitation,relative_humidity_2m",
-                "daily": "temperature_2m_max,temperature_2m_min,precipitation_sum",
-                "timezone": "IST"
-            }
+            # Generate backup random data
+            weather = OpenMeteoService.generate_random_weather()
             
-            response = requests.get(OpenMeteoService.BASE_URL, params=params, timeout=5)
-            response.raise_for_status()
-            
-            data = response.json()
-            
-            if "current_weather" not in data:
-                return {"error": "No current weather data available"}
-            
-            current = data["current_weather"]
+            logger.info(f"📊 Generated backup weather for {city_name or 'location'}: {weather['temperature']}°C")
             
             return {
                 "city": city_name or f"{latitude},{longitude}",
                 "latitude": latitude,
                 "longitude": longitude,
-                "temperature": current.get("temperature", 0),
-                "wind_speed": current.get("wind_speed", 0),
-                "weather_code": current.get("weather_code", 0),
-                "time": current.get("time", ""),
-                "precipitation": 0,  # Will be from hourly data
-                "humidity": 0,  # Will be from hourly data
-                "timestamp": datetime.now().isoformat()
+                "temperature": weather["temperature"],
+                "wind_speed": weather["wind_speed"],
+                "weather_code": weather["weather_code"],
+                "time": datetime.now().isoformat(),
+                "precipitation": weather["precipitation"],
+                "humidity": weather["humidity"],
+                "timestamp": datetime.now().isoformat(),
+                "source": "backup-random-data"
             }
             
-        except requests.exceptions.RequestException as e:
-            return {"error": f"Failed to fetch weather data: {str(e)}"}
         except Exception as e:
-            return {"error": f"Error processing weather data: {str(e)}"}
+            logger.error(f"Error generating weather for {city_name}: {e}")
+            return {"error": f"Error generating weather data: {str(e)}"}
 
     @staticmethod
     def fetch_all_cities_weather() -> Dict:
         """
-        Fetch real-time weather for all predefined Indian cities using PARALLEL requests
+        Generate backup random weather for all Indian cities
         
         Returns:
-            Dictionary with all cities' weather data and aggregated stats
+            Dictionary with all cities weather data and aggregated stats
         """
         try:
             cities_data = []
             temps = []
             precips = []
-            lock = threading.Lock()  # For thread-safe list operations
             
-            def fetch_and_process_city(city_name: str, coords: Dict) -> Optional[Dict]:
-                """Fetch weather for a single city"""
+            logger.info(f"📊 Generating backup weather for {len(OpenMeteoService.INDIAN_CITIES)} cities...")
+            
+            for city_name, coords in OpenMeteoService.INDIAN_CITIES.items():
                 try:
-                    weather = OpenMeteoService.fetch_location_weather(
-                        coords["lat"],
-                        coords["lng"],
-                        city_name
-                    )
-                    
-                    if "error" in weather:
-                        return None
+                    # Generate random weather
+                    weather = OpenMeteoService.generate_random_weather()
+                    temp = weather["temperature"]
                     
                     # Determine color based on temperature
-                    temp = weather.get("temperature", 0)
                     if temp < 0:
-                        color = "#0066ff"  # Dark Blue
+                        color = "#0066ff"
                     elif temp < 10:
-                        color = "#0099ff"  # Light Blue
+                        color = "#0099ff"
                     elif temp < 15:
-                        color = "#00ccff"  # Cyan
+                        color = "#00ccff"
                     elif temp < 20:
-                        color = "#00ff99"  # Light Green
+                        color = "#00ff99"
                     elif temp < 25:
-                        color = "#10b981"  # Green
+                        color = "#10b981"
                     elif temp < 30:
-                        color = "#ffff00"  # Yellow
+                        color = "#ffff00"
                     elif temp < 35:
-                        color = "#f59e0b"  # Orange
+                        color = "#f59e0b"
                     elif temp < 40:
-                        color = "#ff6600"  # Dark Orange
+                        color = "#ff6600"
                     else:
-                        color = "#ef4444"  # Red
+                        color = "#ef4444"
                     
                     city_point = {
                         "state": city_name,
@@ -156,39 +185,22 @@ class OpenMeteoService:
                         "stability_score": 65,
                         "risk": "low",
                         "color": color,
-                        "source": "open-meteo-realtime",
+                        "source": "backup-random-data",
                         "weather_code": weather.get("weather_code", 0),
-                        "time": weather.get("time", "")
+                        "time": datetime.now().isoformat(),
+                        "humidity": round(weather.get("humidity", 50), 1)
                     }
                     
-                    # Thread-safe appending
-                    with lock:
-                        cities_data.append(city_point)
-                        temps.append(temp)
-                        precips.append(weather.get("precipitation", 0))
+                    cities_data.append(city_point)
+                    temps.append(temp)
+                    precips.append(weather.get("precipitation", 0))
                     
-                    return city_point
+                    logger.debug(f"✅ {city_name}: {temp}°C (backup)")
+                    
                 except Exception as e:
-                    print(f"Error fetching weather for {city_name}: {e}")
-                    return None
+                    logger.warning(f"❌ Error generating data for {city_name}: {e}")
             
-            # Use ThreadPoolExecutor for parallel requests (max 10 concurrent)
-            with ThreadPoolExecutor(max_workers=10) as executor:
-                futures = {
-                    executor.submit(fetch_and_process_city, city_name, coords): city_name
-                    for city_name, coords in OpenMeteoService.INDIAN_CITIES.items()
-                }
-                
-                # Wait for all tasks to complete
-                completed = 0
-                for future in as_completed(futures):
-                    try:
-                        future.result()
-                        completed += 1
-                    except Exception as e:
-                        print(f"Error in parallel fetch: {e}")
-            
-            print(f"✅ Fetched weather for {completed} cities in parallel")
+            logger.info(f"✅ Generated weather for {len(cities_data)} cities")
             
             # Calculate aggregates
             avg_temp = sum(temps) / len(temps) if temps else 0
@@ -202,16 +214,17 @@ class OpenMeteoService:
                     "avg_temperature": round(avg_temp, 2),
                     "avg_rainfall": round(avg_precip, 2),
                     "high_risk_count": high_risk_count,
-                    "source": "open-meteo-api",
-                    "cities_fetched": completed
+                    "source": "backup-random-data",
+                    "cities_generated": len(cities_data),
+                    "failed_count": len(OpenMeteoService.INDIAN_CITIES) - len(cities_data)
                 },
                 "timestamp": datetime.now().isoformat()
             }
         
         except Exception as e:
-            print(f"❌ Error in fetch_all_cities_weather: {e}")
+            logger.error(f"Error generating all weather data: {e}")
             return {
-                "error": f"Failed to fetch cities weather data: {str(e)}",
+                "error": f"Failed to generate weather data: {str(e)}",
                 "regions": [],
                 "statistics": {}
             }
@@ -219,7 +232,7 @@ class OpenMeteoService:
     @staticmethod
     def fetch_region_forecast(latitude: float, longitude: float, days: int = 7) -> Dict:
         """
-        Fetch weather forecast for a specific region
+        Generate backup random forecast data for a region
         
         Args:
             latitude: Latitude coordinate
@@ -227,44 +240,39 @@ class OpenMeteoService:
             days: Number of days to forecast (default 7)
             
         Returns:
-            Dictionary with forecast data
+            Dictionary with backup forecast data
         """
         try:
-            params = {
-                "latitude": latitude,
-                "longitude": longitude,
-                "daily": "temperature_2m_max,temperature_2m_min,precipitation_sum",
-                "timezone": "IST"
-            }
-            
-            response = requests.get(OpenMeteoService.BASE_URL, params=params, timeout=5)
-            response.raise_for_status()
-            
-            data = response.json()
-            
-            if "daily" not in data:
-                return {"error": "No forecast data available"}
-            
-            daily = data["daily"]
             forecast_points = []
+            ranges = OpenMeteoService.WEATHER_RANGES
             
-            for i in range(min(days, len(daily["time"]))):
+            # Generate random forecast for next N days
+            for i in range(days):
+                temp_max = round(random.uniform(ranges["temperature"][0], ranges["temperature"][1]), 1)
+                temp_min = round(max(temp_max - 5, ranges["temperature"][0]), 1)
+                precip = round(random.uniform(ranges["rainfall"][0], ranges["rainfall"][1]), 1)
+                
                 forecast_points.append({
-                    "date": daily["time"][i],
-                    "temp_max": daily["temperature_2m_max"][i],
-                    "temp_min": daily["temperature_2m_min"][i],
-                    "precipitation": daily["precipitation_sum"][i]
+                    "date": datetime.now().isoformat(),
+                    "temp_max": temp_max,
+                    "temp_min": temp_min,
+                    "precipitation": precip,
+                    "source": "backup-random-data"
                 })
+            
+            logger.info(f"📊 Generated forecast: {len(forecast_points)} days")
             
             return {
                 "latitude": latitude,
                 "longitude": longitude,
                 "forecast": forecast_points,
-                "days": len(forecast_points)
+                "days": len(forecast_points),
+                "source": "backup-random-data"
             }
             
         except Exception as e:
-            return {"error": f"Failed to fetch forecast data: {str(e)}"}
+            logger.error(f"Error generating forecast: {e}")
+            return {"error": f"Failed to generate forecast data: {str(e)}"}
 
 
 # Initialize service

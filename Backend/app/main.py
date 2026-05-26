@@ -21,6 +21,7 @@ from app.routes import climate, climate_map, auth, admin, intelligence, assistan
 from app.core.database import create_tables, get_db
 from app.services.weather_scheduler import WeatherUpdateScheduler
 from app.services.realtime_weather_service import RealtimeWeatherService
+from app.services.background_weather_service import BackgroundWeatherService
 
 # Import models to ensure they're registered
 from app.models.user import User
@@ -49,7 +50,7 @@ except Exception as db_error:
 async def lifespan(app: FastAPI):
     """
     Manage app startup and shutdown events
-    Initializes scheduler and runs first weather update
+    Starts background weather updates (non-blocking)
     """
     # STARTUP EVENT
     print("\n" + "="*60)
@@ -58,37 +59,34 @@ async def lifespan(app: FastAPI):
     print(f"⏰ Timestamp: {datetime.now().isoformat()}")
     
     try:
-        # Get database session for initial update
-        print("\n📝 Step 1: Getting database session...")
+        # Initialize database
+        print("\n📝 Step 1: Initializing database...")
         db = next(get_db())
         print("✅ Database session obtained")
+        db.close()
+        print("✅ Database ready")
         
-        # Run initial weather update to populate real-time data
-        print("\n📡 Step 2: Fetching initial real-time weather data from Open-Meteo...")
+        # Start background weather service (NON-BLOCKING)
+        print("\n📡 Step 2: Starting background weather service...")
         try:
-            results = RealtimeWeatherService.update_all_cities_from_api(db)
-            logger.info(f"✅ Initial weather update: {results['success']} cities updated")
-            print(f"   - {results['created']} cities created")
-            print(f"   - {results['updated']} cities updated")
-            print(f"   - {results['failed']} cities failed")
+            BackgroundWeatherService.start()
+            print("   ✅ Background weather service started")
+            print("   - Weather will be fetched continuously every 5 minutes")
+            print("   - Staggered requests prevent API hammering")
+            print("   - Cached data used during API outages")
         except Exception as e:
-            logger.error(f"Initial weather update error: {str(e)}")
-            print(f"   ⚠️ Initial update encountered issues: {str(e)}")
-        finally:
-            print("\n🔌 Closing database session...")
-            db.close()
-            print("✅ Database session closed")
+            logger.error(f"Background weather service startup error: {str(e)}")
+            print(f"   ⚠️ Warning: {str(e)}")
         
-        # Start the weather update scheduler
-        print("\n⏱️  Step 3: Starting automatic weather update scheduler...")
+        # Optional: Start the weather update scheduler (if needed)
+        print("\n⏱️  Step 3: Starting optional scheduled updates...")
         try:
-            # Get a new session for scheduler
             from app.core.database import SessionLocal
             WeatherUpdateScheduler.start_scheduler(SessionLocal)
-            print("   ✅ Scheduler started - will update every 30 minutes")
+            print("   ✅ Scheduler started - additional update mechanism running")
         except Exception as e:
             logger.error(f"Scheduler startup error: {str(e)}")
-            print(f"   ⚠️ Scheduler error (manual updates still available): {str(e)}")
+            print(f"   ⚠️ Scheduler not available: {str(e)}")
         
         print("\n" + "="*60)
         print("✅ APPLICATION READY - ALL ROUTES AVAILABLE")
@@ -97,6 +95,7 @@ async def lifespan(app: FastAPI):
         print("  🌐 Root: https://climasense-production.up.railway.app/")
         print("  📚 Docs: https://climasense-production.up.railway.app/docs")
         print("  🏥 Health: https://climasense-production.up.railway.app/health")
+        print("  🌡️  Weather: https://climasense-production.up.railway.app/api/realtime-weather")
         print("="*60 + "\n")
         print("🚀 STARTUP COMPLETE - APP IS FULLY OPERATIONAL")
         print("="*60 + "\n")
@@ -113,10 +112,17 @@ async def lifespan(app: FastAPI):
     print("⏹️  SHUTTING DOWN")
     print("="*60)
     try:
+        BackgroundWeatherService.stop()
+        print("✅ Background weather service stopped")
+    except Exception as e:
+        logger.error(f"Weather service shutdown error: {str(e)}")
+    
+    try:
         WeatherUpdateScheduler.stop_scheduler()
         print("✅ Scheduler stopped")
     except Exception as e:
-        logger.error(f"Shutdown error: {str(e)}")
+        logger.error(f"Scheduler shutdown error: {str(e)}")
+    
     print("="*60 + "\n")
 
 

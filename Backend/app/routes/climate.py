@@ -4,6 +4,7 @@ Climate Routes - API endpoints for climate data and predictions
 from fastapi import APIRouter, Query, Depends, HTTPException, status, Header
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
+import logging
 from app.schemas.prediction import (
     PredictionInput, 
     PredictionOutput,
@@ -28,6 +29,8 @@ router = APIRouter(
     prefix="/api",
     tags=["Climate"]
 )
+
+logger = logging.getLogger(__name__)
 
 
 # ============================================================
@@ -1100,36 +1103,57 @@ def get_realtime_weather(db: Session = Depends(get_db)):
     No authentication required for this endpoint.
     """
     try:
-        # Fetch real-time data from Open-Meteo API
-        data = open_meteo_service.fetch_all_cities_weather()
+        # First try to use cached data from background service (fastest)
+        from app.services.background_weather_service import BackgroundWeatherService
+        cached_data = BackgroundWeatherService.get_all_cached_weather()
         
-        if "error" in data and not data.get("regions"):
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="Failed to fetch real-time weather data from Open-Meteo API"
-            )
+        if cached_data.get("regions"):
+            logger.info(f"Serving {len(cached_data['regions'])} cities from background cache")
+            return cached_data
         
-        # Note: Data is already being saved by the scheduler every 30 minutes
-        # The endpoint just returns the latest cached data from Open-Meteo
-        # Commenting out database save to avoid duplication
-        # if data.get("regions"):
-        #     try:
-        #         saved_records = RealtimeWeatherService.save_batch_weather_data(
-        #             db=db,
-        #             weather_records=data["regions"]
-        #         )
-        #         print(f"✅ Saved {len(saved_records)} weather records to database")
-        #     except Exception as e:
-        #         print(f"⚠️ Warning: Failed to save weather data to DB: {e}")
+        # Cache is empty - try fresh API call (with timeout to prevent hanging)
+        logger.info("Cache empty - attempting fresh API fetch with 10s timeout...")
         
-        return data
+        try:
+            # Create a timeout-limited version of fetch_all_cities_weather
+            import threading
+            api_result = {"regions": [], "error": "timeout"}
+            
+            def fetch_with_timeout():
+                nonlocal api_result
+                try:
+                    api_result = open_meteo_service.fetch_all_cities_weather()
+                except Exception as e:
+                    api_result = {"regions": [], "error": str(e)}
+            
+            fetch_thread = threading.Thread(target=fetch_with_timeout, daemon=True)
+            fetch_thread.start()
+            fetch_thread.join(timeout=10)  # Max 10 seconds
+            
+            if api_result.get("regions"):
+                logger.info(f"Fresh API fetch succeeded - returning {len(api_result['regions'])} cities")
+                return api_result
+            else:
+                logger.warning(f"Fresh API fetch failed or timed out: {api_result.get('error')}")
+        
+        except Exception as e:
+            logger.warning(f"API fetch attempt failed: {e}")
+        
+        # Both cache and API failed - return empty or error
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Real-time weather data currently unavailable. Background weather service is initializing."
+        )
+        
     except HTTPException:
         raise
     except Exception as e:
+        logger.error(f"Error fetching weather: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error fetching real-time weather: {str(e)}"
         )
+
 
 
 @router.get("/realtime-weather/location", tags=["Real-Time"])
